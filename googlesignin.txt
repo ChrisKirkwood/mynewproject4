@@ -1,0 +1,20 @@
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:logger/logger.dart';
+
+class GoogleSignInService {
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final Logger _logger = Logger();
+
+  Future<GoogleSignInAccount?> signIn() async {
+    try {
+      return await _googleSignIn.signIn();
+    } catch (error) {
+      _logger.e("Google sign-in failed: $error");
+      return null;
+    }
+  }
+
+  Future<void> signOut() async {
+    await _googleSignIn.signOut();
+  }
+}

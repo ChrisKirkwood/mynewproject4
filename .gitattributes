@@ -1,0 +1,6 @@
+# Create or edit a .gitattributes file in the root of your project
+# Add the following content:
+* text=auto
+*.sh eol=lf
+*.bat eol=crlf
+*.md eol=lf

@@ -1,0 +1,65 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:logger/logger.dart';
+
+class ApiService {
+  final String apiKeyGoogle;
+  final String apiKeyOpenAI;
+  final Logger logger = Logger();
+
+  ApiService({required this.apiKeyGoogle, required this.apiKeyOpenAI});
+
+  Future<String> recognizeText(File imageFile) async {
+    final url = Uri.parse(
+        'https://vision.googleapis.com/v1/images:annotate?key=$apiKeyGoogle');
+    final bytes = await imageFile.readAsBytes();
+    final base64Image = base64Encode(bytes);
+
+    final body = jsonEncode({
+      "requests": [
+        {
+          "image": {"content": base64Image},
+          "features": [
+            {"type": "TEXT_DETECTION"}
+          ]
+        }
+      ]
+    });
+
+    final response = await http.post(url, body: body, headers: {
+      HttpHeaders.contentTypeHeader: 'application/json',
+    });
+
+    if (response.statusCode == 200) {
+      final jsonResponse = jsonDecode(response.body);
+      final textAnnotations = jsonResponse['responses'][0]['textAnnotations'];
+      if (textAnnotations != null && textAnnotations.isNotEmpty) {
+        return textAnnotations[0]['description'];
+      }
+      return 'No text found';
+    } else {
+      logger.e('Failed to recognize text: ${response.statusCode}');
+      throw Exception('Failed to recognize text');
+    }
+  }
+
+  Future<String> translateText(String prompt) async {
+    final url = Uri.parse('https://api.openai.com/v1/completions');
+    final body = jsonEncode(
+        {"model": "text-davinci-003", "prompt": prompt, "max_tokens": 100});
+
+    final response = await http.post(url, body: body, headers: {
+      HttpHeaders.authorizationHeader: 'Bearer $apiKeyOpenAI',
+      HttpHeaders.contentTypeHeader: 'application/json',
+    });
+
+    if (response.statusCode == 200) {
+      final jsonResponse = jsonDecode(response.body);
+      return jsonResponse['choices'][0]['text'].trim();
+    } else {
+      logger.e('Failed to get AI response: ${response.statusCode}');
+      throw Exception('Failed to get AI response');
+    }
+  }
+}
